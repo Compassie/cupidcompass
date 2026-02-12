@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mucha Cupid Compass</title>
+    <style>
+        :root {
+            --gold: #d4af37;
+            --cream: #f0e68c;
+            --dark-bg: #000000;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--dark-bg);
+            color: var(--cream);
+            font-family: 'Palatino', 'Georgia', serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            background-image: url('background.png'); /* Your background */
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* Input Screen Style */
+        #input-screen {
+            text-align: center;
+            z-index: 10;
+            padding: 20px;
+            border: 2px solid var(--gold);
+            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            width: 85%;
+            max-width: 320px;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+        }
+
+        .guide-text {
+            font-style: italic;
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+            color: var(--gold);
+            border-bottom: 1px solid var(--gold);
+            padding-bottom: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            justify-content: space-between;
+        }
+
+        label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-right: 10px;
+            width: 80px;
+            text-align: left;
+        }
+
+        input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--gold);
+            background: transparent;
+            color: white;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        #confirm-btn {
+            margin-top: 10px;
+            padding: 12px 40px;
+            background: var(--gold);
+            color: black;
+            border: none;
+            border-radius: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        /* Compass Visuals - Perfect Overlap */
+        #compass-ui {
+            display: none;
+            position: relative;
+            width: 90vw;
+            max-width: 350px;
+            height: 90vw;
+            max-height: 350px;
+        }
+
+        .compass-layer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); /* Centers the image center points */
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #cupid-needle {
+            z-index: 5;
+            transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+
+        /* Reset Icon */
+        #reset-icon {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            width: 45px;
+            height: 45px;
+            display: none;
+            cursor: pointer;
+            z-index: 20;
+            filter: drop-shadow(0 0 5px var(--gold));
+        }
+    </style>
+</head>
+<body>
+
+    <img id="reset-icon" src="icon.png" onclick="showInput()" alt="Re-input">
+
+    <div id="input-screen">
+        <p class="guide-text">Seek the path to your heart's desire by entering the coordinates below.</p>
+        
+        <div class="input-group">
+            <label>Latitude</label>
+            <input type="number" id="lat" placeholder="0.0000" step="any">
+        </div>
+        
+        <div class="input-group">
+            <label>Longitude</label>
+            <input type="number" id="lng" placeholder="0.0000" step="any">
+        </div>
+
+        <button id="confirm-btn" onclick="startCompass()">Confirm</button>
+    </div>
+
+    <div id="compass-ui">
+        <img id="compass-base" class="compass-layer" src="compass-base.png">
+        <img id="cupid-needle" class="compass-layer" src="cupid-needle.png">
+    </div>
+
+    <script>
+        let targetLat, targetLng;
+        const needle = document.getElementById('cupid-needle');
+
+        window.onload = () => {
+            const savedLat = localStorage.getItem('mucha_lat');
+            const savedLng = localStorage.getItem('mucha_lng');
+            if (savedLat && savedLng) {
+                document.getElementById('lat').value = savedLat;
+                document.getElementById('lng').value = savedLng;
+            }
+        };
+
+        function startCompass() {
+            targetLat = parseFloat(document.getElementById('lat').value);
+            targetLng = parseFloat(document.getElementById('lng').value);
+
+            if (isNaN(targetLat) || isNaN(targetLng)) {
+                alert("The stars require valid coordinates.");
+                return;
+            }
+
+            localStorage.setItem('mucha_lat', targetLat);
+            localStorage.setItem('mucha_lng', targetLng);
+
+            document.getElementById('input-screen').style.display = 'none';
+            document.getElementById('compass-ui').style.display = 'block';
+            document.getElementById('reset-icon').style.display = 'block';
+
+            initSensors();
+        }
+
+        function showInput() {
+            document.getElementById('input-screen').style.display = 'block';
+            document.getElementById('compass-ui').style.display = 'none';
+            document.getElementById('reset-icon').style.display = 'none';
+        }
+
+        async function initSensors() {
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const permission = await DeviceOrientationEvent.requestPermission();
+                    if (permission === 'granted') {
+                        window.addEventListener('deviceorientation', updateCompass, true);
+                    }
+                } catch (e) { alert("Orientation access denied."); }
+            } else {
+                window.addEventListener('deviceorientation', updateCompass, true);
+            }
+        }
+
+        function updateCompass(event) {
+            // Normalize heading for both iOS and Android
+            let heading = event.webkitCompassHeading || (360 - event.alpha);
+
+            navigator.geolocation.getCurrentPosition((pos) => {
+                const userLat = pos.coords.latitude;
+                const userLon = pos.coords.longitude;
+                
+                const bearing = getBearing(userLat, userLon, targetLat, targetLng);
+                
+                // Rotation logic: Bearing minus device heading
+                // The needle CSS 'transform' includes the centering 'translate' plus the rotation
+                const rotation = bearing - heading;
+                needle.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+            }, null, { enableHighAccuracy: true });
+        }
+
+        function getBearing(lat1, lon1, lat2, lon2) {
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+            const y = Math.sin(Δλ) * Math.cos(φ2);
+            const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+            return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+        }
+    </script>
+</body>
+</html>
