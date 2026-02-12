@@ -54,15 +54,25 @@
             cursor: pointer;
         }
 
-        /* Compass Visuals - Oversized/Zoomed Logic */
+        /* Responsive Compass Container */
         #compass-viewport {
             display: none;
             position: relative;
-            /* We make the container 150% of screen width to "crop" the edges */
-            width: 150vw; 
-            height: 150vw;
-            max-width: 120vh; /* Safety for very tall screens */
-            max-height: 120vh;
+            /* Prioritize fitting the vertical height so iPads don't crop the top */
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .compass-wrap {
+            position: relative;
+            /* Phone: 140% width (crops sides). iPad: stays within height. */
+            width: 140vw; 
+            height: 140vw;
+            max-width: 95vh; 
+            max-height: 95vh;
         }
 
         .compass-layer {
@@ -75,30 +85,36 @@
             object-fit: contain;
         }
 
+        /* Visual feedback for iOS instead of vibration */
         #cupid-needle {
             z-index: 5;
-            /* We handle smoothness in JS now to prevent the 360-snap */
-            transition: transform 0.3s ease-out; 
+            transition: transform 0.3s ease-out, filter 0.3s;
         }
 
-        /* Reset Icon - Positioned relative to the compass edge */
-        #reset-icon {
-            position: absolute;
-            /* Places it at the top right of the VISIBLE area */
-            top: 20%; 
-            right: 20%; 
-            width: 55px;
-            height: 55px;
-            cursor: pointer;
-            z-index: 20;
-            filter: drop-shadow(0 0 8px rgba(0,0,0,0.8));
+        .target-locked {
+            filter: drop-shadow(0 0 15px var(--gold)) brightness(1.2);
         }
+
+        /* Reset Icon - Bottom Right of the screen, not the compass */
+        #reset-icon {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            z-index: 100;
+            filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+            transition: transform 0.2s;
+        }
+        
+        #reset-icon:active { transform: scale(0.9); }
     </style>
 </head>
 <body class="bg-input" id="body-bg">
 
     <div id="input-screen">
-        <p style="font-style: italic; color: var(--gold);">Enter your destination.</p>
+        <p style="font-style: italic; color: var(--gold);">Seek your destination.</p>
         <div class="input-group">
             <label>Latitude</label>
             <input type="number" id="lat" step="any">
@@ -111,105 +127,105 @@
     </div>
 
     <div id="compass-viewport">
-        <img id="reset-icon" src="icon.png" onclick="showInput()" alt="Reset">
-        <img id="compass-base" class="compass-layer" src="compass-base.png">
-        <img id="cupid-needle" class="compass-layer" src="cupid-needle.png">
+        <div class="compass-wrap">
+            <img id="compass-base" class="compass-layer" src="compass-base.png">
+            <img id="cupid-needle" class="compass-layer" src="cupid-needle.png">
+        </div>
+        <img id="reset-icon" src="icon.png" onclick="showInput()" alt="Reset" style="display:none;">
     </div>
 
     <script>
-            let targetLat, targetLng;
-    let currentRotation = 0;
-    let lastHeading = null;
-    let hasVibrated = false; // Prevents continuous buzzing
+        let targetLat, targetLng;
+        let currentRotation = 0;
+        let lastHeading = null;
+        let lockState = false;
 
-    const needle = document.getElementById('cupid-needle');
-    const bodyBg = document.getElementById('body-bg');
+        const needle = document.getElementById('cupid-needle');
+        const bodyBg = document.getElementById('body-bg');
+        const resetIcon = document.getElementById('reset-icon');
 
-    window.onload = () => {
-        const savedLat = localStorage.getItem('mucha_lat');
-        const savedLng = localStorage.getItem('mucha_lng');
-        if (savedLat) document.getElementById('lat').value = savedLat;
-        if (savedLng) document.getElementById('lng').value = savedLng;
-    };
+        window.onload = () => {
+            const savedLat = localStorage.getItem('mucha_lat');
+            const savedLng = localStorage.getItem('mucha_lng');
+            if (savedLat) document.getElementById('lat').value = savedLat;
+            if (savedLng) document.getElementById('lng').value = savedLng;
+        };
 
-    function startCompass() {
-        targetLat = parseFloat(document.getElementById('lat').value);
-        targetLng = parseFloat(document.getElementById('lng').value);
+        function startCompass() {
+            targetLat = parseFloat(document.getElementById('lat').value);
+            targetLng = parseFloat(document.getElementById('lng').value);
 
-        if (isNaN(targetLat) || isNaN(targetLng)) return alert("The stars require valid coordinates.");
+            if (isNaN(targetLat) || isNaN(targetLng)) return alert("Please enter valid coordinates.");
 
-        localStorage.setItem('mucha_lat', targetLat);
-        localStorage.setItem('mucha_lng', targetLng);
+            localStorage.setItem('mucha_lat', targetLat);
+            localStorage.setItem('mucha_lng', targetLng);
 
-        document.getElementById('input-screen').style.display = 'none';
-        document.getElementById('compass-viewport').style.display = 'block';
-        bodyBg.className = 'bg-compass';
+            document.getElementById('input-screen').style.display = 'none';
+            document.getElementById('compass-viewport').style.cssText = 'display: flex;';
+            resetIcon.style.display = 'block';
+            bodyBg.className = 'bg-compass';
 
-        initSensors();
-    }
-
-    function showInput() {
-        document.getElementById('input-screen').style.display = 'block';
-        document.getElementById('compass-viewport').style.display = 'none';
-        bodyBg.className = 'bg-input';
-    }
-
-    async function initSensors() {
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-            const res = await DeviceOrientationEvent.requestPermission();
-            if (res === 'granted') window.addEventListener('deviceorientation', updateCompass, true);
-        } else {
-            window.addEventListener('deviceorientation', updateCompass, true);
+            initSensors();
         }
-    }
 
-    function updateCompass(event) {
-        let heading = event.webkitCompassHeading || (360 - event.alpha);
+        function showInput() {
+            document.getElementById('input-screen').style.display = 'block';
+            document.getElementById('compass-viewport').style.display = 'none';
+            resetIcon.style.display = 'none';
+            bodyBg.className = 'bg-input';
+        }
 
-        navigator.geolocation.getCurrentPosition((pos) => {
-            const bearing = getBearing(pos.coords.latitude, pos.coords.longitude, targetLat, targetLng);
-            let targetRotation = bearing - heading;
-
-            // Infinite Rotation Logic
-            if (lastHeading !== null) {
-                let delta = targetRotation - (currentRotation % 360);
-                if (delta > 180) delta -= 360;
-                if (delta < -180) delta += 360;
-                currentRotation += delta;
+        async function initSensors() {
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                const res = await DeviceOrientationEvent.requestPermission();
+                if (res === 'granted') window.addEventListener('deviceorientation', updateCompass, true);
             } else {
-                currentRotation = targetRotation;
+                window.addEventListener('deviceorientation', updateCompass, true);
             }
-            lastHeading = heading;
+        }
 
-            needle.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
+        function updateCompass(event) {
+            let heading = event.webkitCompassHeading || (360 - event.alpha);
 
-            // --- HAPTIC FEEDBACK LOGIC ---
-            // Normalize the angle to check if we are facing the target
-            const normalizedRotation = Math.abs(currentRotation % 360);
-            
-            // If the needle is within 5 degrees of "North" (0 or 360)
-            if (normalizedRotation < 5 || normalizedRotation > 355) {
-                if (!hasVibrated) {
-                    // Trigger a 50ms vibration pulse
-                    if ("vibrate" in navigator) {
-                        navigator.vibrate(50); 
-                    }
-                    hasVibrated = true; // Lock vibration until they move away
+            navigator.geolocation.getCurrentPosition((pos) => {
+                const bearing = getBearing(pos.coords.latitude, pos.coords.longitude, targetLat, targetLng);
+                let targetRotation = bearing - heading;
+
+                if (lastHeading !== null) {
+                    let delta = targetRotation - (currentRotation % 360);
+                    if (delta > 180) delta -= 360;
+                    if (delta < -180) delta += 360;
+                    currentRotation += delta;
+                } else {
+                    currentRotation = targetRotation;
                 }
-            } else {
-                hasVibrated = false; // Reset so it can vibrate again next time they aim correctly
-            }
+                lastHeading = heading;
 
-        }, null, { enableHighAccuracy: true });
-    }
+                needle.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
 
-    function getBearing(lat1, lon1, lat2, lon2) {
-        const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
-        const Δλ = (lon2 - lon1) * Math.PI / 180;
-        const y = Math.sin(Δλ) * Math.cos(φ2);
-        const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-        return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
-    }
+                // --- FEEDBACK LOGIC ---
+                const diff = Math.abs(currentRotation % 360);
+                if (diff < 6 || diff > 354) {
+                    if (!lockState) {
+                        needle.classList.add('target-locked');
+                        if ("vibrate" in navigator) navigator.vibrate(40); 
+                        lockState = true;
+                    }
+                } else {
+                    needle.classList.remove('target-locked');
+                    lockState = false;
+                }
+
+            }, null, { enableHighAccuracy: true });
+        }
+
+        function getBearing(lat1, lon1, lat2, lon2) {
+            const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+            const y = Math.sin(Δλ) * Math.cos(φ2);
+            const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+            return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+        }
     </script>
 </body>
 </html>
