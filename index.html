@@ -10,7 +10,7 @@
             --cream: #f3e9d2;
         }
 
-        /* 1. FIX: Force absolute black background and hide overflow */
+        /* Base Layout */
         html, body {
             margin: 0; padding: 0;
             background: #000;
@@ -18,15 +18,17 @@
             overflow: hidden;
             display: flex;
             justify-content: center;
-            align-items: center; /* Vertical Center */
+            align-items: center; 
         }
 
         .bg-input { background-image: url('input-bg.png'); background-size: cover; background-position: center; }
         .bg-compass { background-image: url('compass-bg.png'); background-size: cover; background-position: center; }
 
-        /* 2. FIX: Hide the compass layers by default with opacity 0 to prevent "flicker" */
+        /* Prevent flicker: Hidden by default */
+        #input-screen, #compass-viewport, #reset-icon { display: none; }
+
+        /* Aesthetic Input Screen */
         #input-screen {
-            display: flex;
             flex-direction: column;
             z-index: 100;
             padding: 30px;
@@ -35,21 +37,38 @@
             width: 80%; max-width: 320px;
             border-radius: 50px 50px 10px 10px;
             text-align: center;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
         }
 
+        .input-group {
+            display: flex; align-items: center; margin-bottom: 12px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+        }
+        label { width: 80px; text-align: left; font-size: 0.7rem; color: var(--gold); text-transform: uppercase; }
+        input { flex: 1; padding: 10px; border: none; background: transparent; color: #fff; outline: none; }
+
+        #confirm-btn {
+            margin-top: 15px; padding: 12px;
+            background: transparent; color: var(--gold);
+            border: 1px solid var(--gold); border-radius: 25px;
+            text-transform: uppercase; font-weight: bold; cursor: pointer;
+            transition: 0.3s;
+        }
+        #confirm-btn:active { background: var(--gold); color: #000; }
+
+        /* Compass Container (Vertically Centered) */
         #compass-viewport {
-            display: none; /* Hidden entirely until 'Begin' is clicked */
             position: absolute;
             top: 0; left: 0;
             width: 100vw; height: 100vh;
             justify-content: center;
-            align-items: center; /* FIX: Vertical centering for the compass */
+            align-items: center; 
         }
 
         .compass-wrap {
             position: relative;
             width: 140vw; height: 140vw;
-            max-width: 80vh; max-height: 80vh; /* FIX: Ensures it stays centered and contained */
+            max-width: 80vh; max-height: 80vh; 
         }
 
         .compass-layer {
@@ -60,45 +79,47 @@
             object-fit: contain;
         }
 
-        /* 3. FIX: Smoother transitions and subtle visual effects */
+        /* Special Layers */
+        #ornament-layer {
+            z-index: 3;
+            opacity: 0.4;
+            transition: opacity 0.4s;
+        }
+
         #cupid-needle {
             z-index: 5;
             will-change: transform;
-            /* Faster transition for responsiveness, but CSS handles the 'smoothing' weight */
-            transition: transform 0.4s cubic-bezier(0.1, 0.3, 0.3, 1); 
+            transition: transform 0.4s cubic-bezier(0.1, 0.3, 0.3, 1);
         }
 
+        /* Visual Effects */
         .target-locked {
-            filter: drop-shadow(0 0 10px var(--gold)) brightness(1.1); /* Subtle glow */
+            filter: drop-shadow(0 0 12px var(--gold)) brightness(1.15);
         }
 
-        .input-group {
-            display: flex; align-items: center; margin-bottom: 15px;
-            border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+        @keyframes twinkle-gold {
+            0%, 100% { filter: brightness(1); opacity: 0.4; }
+            50% { filter: brightness(1.8) drop-shadow(0 0 15px var(--gold)); opacity: 1; }
         }
-        label { width: 80px; text-align: left; font-size: 0.7rem; color: var(--gold); }
-        input { flex: 1; padding: 10px; border: none; background: transparent; color: #fff; outline: none; }
 
-        #confirm-btn {
-            margin-top: 15px; padding: 12px;
-            background: transparent; color: var(--gold);
-            border: 1px solid var(--gold); border-radius: 20px;
-            text-transform: uppercase; font-weight: bold; cursor: pointer;
+        .twinkle-active {
+            animation: twinkle-gold 0.6s ease-in-out 3;
         }
 
         #reset-icon {
             position: fixed; bottom: 30px; right: 30px;
-            width: 50px; height: 50px; display: none; z-index: 200;
+            width: 50px; height: 50px; z-index: 200;
+            filter: drop-shadow(0 0 5px #000);
         }
     </style>
 </head>
 <body class="bg-input">
 
     <div id="input-screen">
-        <p style="font-style: italic; color: var(--gold); margin-bottom: 20px;">❦ Follow the arrow ❦</p>
+        <p style="font-style: italic; color: var(--gold); margin-bottom: 20px;">❦ Seek your destination ❦</p>
         <div class="input-group">
             <label>City</label>
-            <input type="text" id="city-input" placeholder="Search City...">
+            <input type="text" id="city-input" placeholder="Search City Name...">
         </div>
         <div style="font-size: 0.6rem; color: var(--gold); margin: 5px;">— OR —</div>
         <div class="input-group">
@@ -107,12 +128,13 @@
         <div class="input-group">
             <label>Lng</label><input type="number" id="lng" step="any">
         </div>
-        <button id="confirm-btn" onclick="handleStart()">Begin</button>
+        <button id="confirm-btn" onclick="handleStart()">Begin journey</button>
     </div>
 
     <div id="compass-viewport">
         <div class="compass-wrap">
             <img id="compass-base" class="compass-layer" src="compass-base.png">
+            <img id="ornament-layer" class="compass-layer" src="ornament.png">
             <img id="cupid-needle" class="compass-layer" src="cupid-needle.png">
         </div>
     </div>
@@ -121,6 +143,7 @@
 
     <script>
         const needle = document.getElementById('cupid-needle');
+        const ornament = document.getElementById('ornament-layer');
         const viewport = document.getElementById('compass-viewport');
         const inputScreen = document.getElementById('input-screen');
         const resetIcon = document.getElementById('reset-icon');
@@ -128,16 +151,17 @@
         let targetLat, targetLng;
         let userLat, userLon;
         let currentRotation = 0;
-        let lastBearing = 0;
+        let lockState = false;
+        let smoothedHeading = 0;
 
         window.onload = () => {
             const savedLat = localStorage.getItem('mucha_lat');
             const savedLng = localStorage.getItem('mucha_lng');
             if (savedLat) document.getElementById('lat').value = savedLat;
             if (savedLng) document.getElementById('lng').value = savedLng;
+            inputScreen.style.display = 'flex';
         };
 
-        // Update GPS separate from Compass to stop jiggling
         function startGPS() {
             navigator.geolocation.watchPosition((pos) => {
                 userLat = pos.coords.latitude;
@@ -148,23 +172,24 @@
         async function handleStart() {
             const city = document.getElementById('city-input').value;
             if (city) {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}`);
-                const data = await res.json();
-                if (data.length > 0) {
-                    targetLat = parseFloat(data[0].lat);
-                    targetLng = parseFloat(data[0].lon);
-                }
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${city}`);
+                    const data = await res.json();
+                    if (data.length > 0) {
+                        targetLat = parseFloat(data[0].lat);
+                        targetLng = parseFloat(data[0].lon);
+                    } else { alert("City not found."); return; }
+                } catch (e) { alert("Network error."); return; }
             } else {
                 targetLat = parseFloat(document.getElementById('lat').value);
                 targetLng = parseFloat(document.getElementById('lng').value);
             }
 
-            if (!targetLat) return alert("Select a destination.");
+            if (isNaN(targetLat)) return alert("Please enter coordinates or city.");
 
             localStorage.setItem('mucha_lat', targetLat);
             localStorage.setItem('mucha_lng', targetLng);
 
-            // Toggle UI
             inputScreen.style.display = 'none';
             viewport.style.display = 'flex';
             resetIcon.style.display = 'block';
@@ -191,26 +216,45 @@
         }
 
         function updateRotation(event) {
-            let heading = event.webkitCompassHeading || (360 - event.alpha);
+            let rawHeading = event.webkitCompassHeading || (360 - event.alpha);
+            
+            // Low-pass filter for smoothness
+            let filterAlpha = 0.15;
+            let hDiff = rawHeading - smoothedHeading;
+            if (hDiff > 180) hDiff -= 360;
+            if (hDiff < -180) hDiff += 360;
+            smoothedHeading += filterAlpha * hDiff;
+
             if (!userLat) return;
 
             const bearing = getBearing(userLat, userLon, targetLat, targetLng);
-            let targetRotation = bearing - heading;
+            let targetRotation = bearing - smoothedHeading;
 
-            // Shortest path rotation logic
-            let diff = targetRotation - (currentRotation % 360);
-            if (diff > 180) diff -= 360;
-            if (diff < -180) diff += 360;
-            currentRotation += diff;
+            // Shortest path logic
+            let rotDiff = targetRotation - (currentRotation % 360);
+            if (rotDiff > 180) rotDiff -= 360;
+            if (rotDiff < -180) rotDiff += 360;
+            currentRotation += rotDiff;
 
             needle.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
 
-            // Visual feedback
-            const check = Math.abs(currentRotation % 360);
-            if (check < 5 || check > 355) {
-                needle.classList.add('target-locked');
+            // --- Feedback Logic ---
+            const checkAngle = Math.abs(currentRotation % 360);
+            if (checkAngle < 6 || checkAngle > 354) {
+                if (!lockState) {
+                    // 1. Twinkle Effect
+                    ornament.classList.add('twinkle-active');
+                    needle.classList.add('target-locked');
+                    // 2. Vibration Pattern
+                    if ("vibrate" in navigator) navigator.vibrate([80, 40, 80]);
+                    lockState = true;
+                }
             } else {
-                needle.classList.remove('target-locked');
+                if (lockState) {
+                    ornament.classList.remove('twinkle-active');
+                    needle.classList.remove('target-locked');
+                    lockState = false;
+                }
             }
         }
 
