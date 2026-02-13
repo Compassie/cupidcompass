@@ -23,10 +23,14 @@
         .bg-input { background-image: url('input-bg.png'); background-size: cover; background-position: center; }
         .bg-compass { background-image: url('compass-bg.png'); background-size: cover; background-position: center; }
 
-        #input-screen, #compass-viewport, #reset-icon { display: none; }
+        /* CRITICAL FIX: Hide these explicitly in CSS to prevent refresh-flicker */
+        #compass-viewport, #reset-icon { 
+            display: none !important; 
+        }
 
-        /* Input Screen UI */
+        /* Input Screen UI - Starts as Flex */
         #input-screen {
+            display: flex; 
             flex-direction: column;
             z-index: 100;
             padding: 30px;
@@ -35,6 +39,7 @@
             width: 80%; max-width: 320px;
             border-radius: 50px 50px 10px 10px;
             text-align: center;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
         }
 
         .input-group {
@@ -56,7 +61,6 @@
             position: absolute;
             top: 0; left: 0;
             width: 100vw; height: 100vh;
-            display: flex;
             justify-content: center;
             align-items: center; 
         }
@@ -81,17 +85,14 @@
             transition: transform 0.4s cubic-bezier(0.1, 0.3, 0.3, 1);
         }
 
-        /* FIX: The Heartbeat Anchor */
         #ornament-layer {
             z-index: 10;
             opacity: 0;
             pointer-events: none;
-            /* ADJUST THESE VALUES: 
-               First value: horizontal (50% is middle)
-               Second value: vertical (Lower number = higher up) */
-            transform-origin: 50% 9.1543%; 
+            transform-origin: 50% 9.1543%; /* Anchored to your heart position */
         }
 
+        /* Heartbeat Animation */
         @keyframes heartbeat {
             0% { transform: translate(-50%, -50%) scale(1); filter: brightness(1) drop-shadow(0 0 0px var(--heart-red)); opacity: 0; }
             30% { transform: translate(-50%, -50%) scale(1.15); filter: brightness(1.8) drop-shadow(0 0 20px var(--heart-red)); opacity: 1; }
@@ -158,7 +159,9 @@
                 document.getElementById('lat').value = savedLat;
                 document.getElementById('lng').value = savedLng;
             }
+            // Ensure input screen is visible and compass is hidden
             inputScreen.style.display = 'flex';
+            viewport.style.setProperty('display', 'none', 'important');
         };
 
         function startGPS() {
@@ -186,17 +189,20 @@
             if (isNaN(targetLat)) return alert("Please specify a location.");
             localStorage.setItem('mucha_lat', targetLat);
             localStorage.setItem('mucha_lng', targetLng);
+
+            // Switching Screens
             inputScreen.style.display = 'none';
-            viewport.style.display = 'flex';
+            viewport.style.setProperty('display', 'flex', 'important');
             resetIcon.style.display = 'block';
             document.body.className = 'bg-compass';
+            
             startGPS();
             initSensors();
         }
 
         function showInput() {
             inputScreen.style.display = 'flex';
-            viewport.style.display = 'none';
+            viewport.style.setProperty('display', 'none', 'important');
             resetIcon.style.display = 'none';
             document.body.className = 'bg-input';
         }
@@ -229,11 +235,12 @@
             needle.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
 
             const checkAngle = Math.abs(currentRotation % 360);
-            if (checkAngle < 3 || checkAngle > 357) {
+            if (checkAngle < 5 || checkAngle > 355) {
                 if (!lockState) {
                     ornament.classList.add('beating');
                     needle.classList.add('target-locked');
-                    if ("vibrate" in navigator) navigator.vibrate([100, 50, 100]);
+                    // Triple-thump vibration to match the 3 heartbeat pulses
+                    if ("vibrate" in navigator) navigator.vibrate([100, 100, 100, 100, 100]);
                     lockState = true;
                 }
             } else {
