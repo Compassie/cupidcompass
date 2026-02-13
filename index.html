@@ -89,7 +89,7 @@
             z-index: 10;
             opacity: 0;
             pointer-events: none;
-            transform-origin: 50% 25%; /* Heart anchor */
+            transform-origin: 50% 9.1543%; /* Heart anchor */
         }
 
         /* Heartbeat Animation */
@@ -242,7 +242,7 @@
             needle.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
 
             const checkAngle = Math.abs(currentRotation % 360);
-            if (checkAngle < 6 || checkAngle > 354) {
+            if (checkAngle <5 || checkAngle > 355) {
                 if (!lockState) {
                     ornament.classList.add('beating');
                     needle.classList.add('target-locked');
