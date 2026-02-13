@@ -7,11 +7,9 @@
     <style>
         :root {
             --gold: #d4af37;
-            --cream: #f3e9d2;
             --heart-red: #ff3b3b;
         }
 
-        /* Base Layout */
         html, body {
             margin: 0; padding: 0;
             background: #000;
@@ -25,10 +23,9 @@
         .bg-input { background-image: url('input-bg.png'); background-size: cover; background-position: center; }
         .bg-compass { background-image: url('compass-bg.png'); background-size: cover; background-position: center; }
 
-        /* Initial Setup */
         #input-screen, #compass-viewport, #reset-icon { display: none; }
 
-        /* Aesthetic Input Screen */
+        /* Input Screen UI */
         #input-screen {
             flex-direction: column;
             z-index: 100;
@@ -38,7 +35,6 @@
             width: 80%; max-width: 320px;
             border-radius: 50px 50px 10px 10px;
             text-align: center;
-            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
         }
 
         .input-group {
@@ -60,6 +56,7 @@
             position: absolute;
             top: 0; left: 0;
             width: 100vw; height: 100vh;
+            display: flex;
             justify-content: center;
             align-items: center; 
         }
@@ -78,30 +75,33 @@
             object-fit: contain;
         }
 
-        /* Layer Depth */
         #cupid-needle {
             z-index: 5;
             will-change: transform;
             transition: transform 0.4s cubic-bezier(0.1, 0.3, 0.3, 1);
         }
 
+        /* FIX: The Heartbeat Anchor */
         #ornament-layer {
-            z-index: 10; /* Top Layer */
+            z-index: 10;
             opacity: 0;
             pointer-events: none;
+            /* ADJUST THESE VALUES: 
+               First value: horizontal (50% is middle)
+               Second value: vertical (Lower number = higher up) */
+            transform-origin: 50% 9.1543%; 
         }
 
-        /* THE RED HEARTBEAT EFFECT */
         @keyframes heartbeat {
-            0% { transform: translate(-50%, -50%) scale(1); filter: brightness(1) drop-shadow(0 0 0px var(--heart-red)); opacity: 0.2; }
-            30% { transform: translate(-50%, -50%) scale(1.08); filter: brightness(1.6) drop-shadow(0 0 15px var(--heart-red)); opacity: 1; }
-            50% { transform: translate(-50%, -50%) scale(1.02); filter: brightness(1.2) drop-shadow(0 0 5px var(--heart-red)); opacity: 0.8; }
-            70% { transform: translate(-50%, -50%) scale(1.12); filter: brightness(1.8) drop-shadow(0 0 25px var(--heart-red)); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(1); filter: brightness(1) drop-shadow(0 0 0px var(--heart-red)); opacity: 0.2; }
+            0% { transform: translate(-50%, -50%) scale(1); filter: brightness(1) drop-shadow(0 0 0px var(--heart-red)); opacity: 0; }
+            30% { transform: translate(-50%, -50%) scale(1.15); filter: brightness(1.8) drop-shadow(0 0 20px var(--heart-red)); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.05); filter: brightness(1.4) drop-shadow(0 0 10px var(--heart-red)); opacity: 0.8; }
+            70% { transform: translate(-50%, -50%) scale(1.2); filter: brightness(2) drop-shadow(0 0 30px var(--heart-red)); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); filter: brightness(1) drop-shadow(0 0 0px var(--heart-red)); opacity: 0; }
         }
 
         .beating {
-            animation: heartbeat 0.8s ease-in-out 3; /* Beats 3 times */
+            animation: heartbeat 0.8s ease-in-out 3;
         }
 
         .target-locked {
@@ -149,11 +149,7 @@
         const inputScreen = document.getElementById('input-screen');
         const resetIcon = document.getElementById('reset-icon');
 
-        let targetLat, targetLng;
-        let userLat, userLon;
-        let currentRotation = 0;
-        let lockState = false;
-        let smoothedHeading = 0;
+        let targetLat, targetLng, userLat, userLon, currentRotation = 0, lockState = false, smoothedHeading = 0;
 
         window.onload = () => {
             const savedLat = localStorage.getItem('mucha_lat');
@@ -187,17 +183,13 @@
                 targetLat = parseFloat(document.getElementById('lat').value);
                 targetLng = parseFloat(document.getElementById('lng').value);
             }
-
             if (isNaN(targetLat)) return alert("Please specify a location.");
-
             localStorage.setItem('mucha_lat', targetLat);
             localStorage.setItem('mucha_lng', targetLng);
-
             inputScreen.style.display = 'none';
             viewport.style.display = 'flex';
             resetIcon.style.display = 'block';
             document.body.className = 'bg-compass';
-
             startGPS();
             initSensors();
         }
@@ -220,8 +212,6 @@
 
         function updateRotation(event) {
             let rawHeading = event.webkitCompassHeading || (360 - event.alpha);
-            
-            // Anti-jiggle smoothing
             let filterAlpha = 0.15;
             let hDiff = rawHeading - smoothedHeading;
             if (hDiff > 180) hDiff -= 360;
@@ -229,11 +219,8 @@
             smoothedHeading += filterAlpha * hDiff;
 
             if (!userLat) return;
-
             const bearing = getBearing(userLat, userLon, targetLat, targetLng);
             let targetRotation = bearing - smoothedHeading;
-
-            // Infinite rotation
             let rotDiff = targetRotation - (currentRotation % 360);
             if (rotDiff > 180) rotDiff -= 360;
             if (rotDiff < -180) rotDiff += 360;
@@ -241,11 +228,9 @@
 
             needle.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
 
-            // Feedback Logic
             const checkAngle = Math.abs(currentRotation % 360);
-            if (checkAngle < 6 || checkAngle > 354) {
+            if (checkAngle < 3 || checkAngle > 357) {
                 if (!lockState) {
-                    // Start Heartbeat & Vibration
                     ornament.classList.add('beating');
                     needle.classList.add('target-locked');
                     if ("vibrate" in navigator) navigator.vibrate([100, 50, 100]);
@@ -253,7 +238,6 @@
                 }
             } else {
                 if (lockState) {
-                    // Stop Effects
                     ornament.classList.remove('beating');
                     needle.classList.remove('target-locked');
                     lockState = false;
