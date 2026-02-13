@@ -79,17 +79,18 @@
             object-fit: contain;
         }
 
-        /* Special Layers */
-        #ornament-layer {
-            z-index: 3;
-            opacity: 0.4;
-            transition: opacity 0.4s;
-        }
-
+        /* FIX: Ornament now at the very top */
         #cupid-needle {
             z-index: 5;
             will-change: transform;
             transition: transform 0.4s cubic-bezier(0.1, 0.3, 0.3, 1);
+        }
+
+        #ornament-layer {
+            z-index: 10; /* Higher than Cupid */
+            opacity: 0.4;
+            transition: opacity 0.4s;
+            pointer-events: none; /* User can click through it to the reset icon if needed */
         }
 
         /* Visual Effects */
@@ -134,8 +135,8 @@
     <div id="compass-viewport">
         <div class="compass-wrap">
             <img id="compass-base" class="compass-layer" src="compass-base.png">
-            <img id="ornament-layer" class="compass-layer" src="ornament.png">
             <img id="cupid-needle" class="compass-layer" src="cupid-needle.png">
+            <img id="ornament-layer" class="compass-layer" src="ornament.png">
         </div>
     </div>
 
@@ -218,7 +219,6 @@
         function updateRotation(event) {
             let rawHeading = event.webkitCompassHeading || (360 - event.alpha);
             
-            // Low-pass filter for smoothness
             let filterAlpha = 0.15;
             let hDiff = rawHeading - smoothedHeading;
             if (hDiff > 180) hDiff -= 360;
@@ -230,7 +230,6 @@
             const bearing = getBearing(userLat, userLon, targetLat, targetLng);
             let targetRotation = bearing - smoothedHeading;
 
-            // Shortest path logic
             let rotDiff = targetRotation - (currentRotation % 360);
             if (rotDiff > 180) rotDiff -= 360;
             if (rotDiff < -180) rotDiff += 360;
@@ -238,14 +237,11 @@
 
             needle.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
 
-            // --- Feedback Logic ---
             const checkAngle = Math.abs(currentRotation % 360);
             if (checkAngle < 6 || checkAngle > 354) {
                 if (!lockState) {
-                    // 1. Twinkle Effect
                     ornament.classList.add('twinkle-active');
                     needle.classList.add('target-locked');
-                    // 2. Vibration Pattern
                     if ("vibrate" in navigator) navigator.vibrate([80, 40, 80]);
                     lockState = true;
                 }
