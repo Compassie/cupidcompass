@@ -8,7 +8,6 @@
         :root {
             --gold: #d4af37;
             --heart-red: #ff3b3b;
-            --border-gold: #c5a059;
         }
 
         html, body {
@@ -24,44 +23,30 @@
         .bg-input { background-image: url('input-bg.png'); background-size: cover; background-position: center; }
         .bg-compass { background-image: url('compass-bg.png'); background-size: cover; background-position: center; }
 
-        /* Prevent Refresh Flicker */
-        #compass-viewport, #reset-icon, #mucha-frame { 
-            display: none !important; 
+        /* Initial State: Compass and Reset Icon are hidden via CSS */
+        #compass-viewport, #reset-icon { 
+            display: none; 
         }
 
-        /* Mucha Style Frame */
-        #mucha-frame {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            pointer-events: none;
-            z-index: 100; /* Behind UI, in front of background */
-            /* A decorative radial gradient border to mimic a gold frame */
-            border: 15px solid transparent;
-            border-image: radial-gradient(var(--gold), var(--border-gold)) 30;
-            box-sizing: border-box;
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
-        }
-
-        /* Screen 1 UI */
+        /* Input Screen UI */
         #input-screen {
             display: flex; 
             flex-direction: column;
-            z-index: 150;
+            z-index: 100;
             padding: 30px;
             border: 1px solid var(--gold);
             background: rgba(0, 0, 0, 0.9);
             width: 80%; max-width: 320px;
-            border-radius: 60px 60px 15px 15px;
+            border-radius: 50px 50px 10px 10px;
             text-align: center;
-            box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
         }
 
         .input-group {
             display: flex; align-items: center; margin-bottom: 12px;
             border-bottom: 1px solid rgba(212, 175, 55, 0.3);
         }
-        label { width: 80px; text-align: left; font-size: 0.7rem; color: var(--gold); text-transform: uppercase; letter-spacing: 1px;}
+        label { width: 80px; text-align: left; font-size: 0.7rem; color: var(--gold); text-transform: uppercase; }
         input { flex: 1; padding: 10px; border: none; background: transparent; color: #fff; outline: none; }
 
         #confirm-btn {
@@ -69,10 +54,9 @@
             background: transparent; color: var(--gold);
             border: 1px solid var(--gold); border-radius: 25px;
             text-transform: uppercase; font-weight: bold; cursor: pointer;
-            letter-spacing: 2px; transition: 0.3s;
         }
 
-        /* Compass Page (Centered) */
+        /* Compass Viewport */
         #compass-viewport {
             position: absolute;
             top: 0; left: 0;
@@ -105,30 +89,39 @@
             z-index: 10;
             opacity: 0;
             pointer-events: none;
-            transform-origin: 50% 9.1543%;
+            transform-origin: 50% 25%; /* Heart anchor */
         }
 
-        /* Beating Effect */
+        /* Heartbeat Animation */
         @keyframes heartbeat {
             0% { transform: translate(-50%, -50%) scale(1); filter: brightness(1) drop-shadow(0 0 0px var(--heart-red)); opacity: 0; }
-            30% { transform: translate(-50%, -50%) scale(1.18); filter: brightness(1.9) drop-shadow(0 0 25px var(--heart-red)); opacity: 1; }
+            30% { transform: translate(-50%, -50%) scale(1.15); filter: brightness(1.8) drop-shadow(0 0 20px var(--heart-red)); opacity: 1; }
             50% { transform: translate(-50%, -50%) scale(1.05); filter: brightness(1.4) drop-shadow(0 0 10px var(--heart-red)); opacity: 0.8; }
-            70% { transform: translate(-50%, -50%) scale(1.25); filter: brightness(2) drop-shadow(0 0 35px var(--heart-red)); opacity: 1; }
+            70% { transform: translate(-50%, -50%) scale(1.2); filter: brightness(2) drop-shadow(0 0 30px var(--heart-red)); opacity: 1; }
             100% { transform: translate(-50%, -50%) scale(1); filter: brightness(1) drop-shadow(0 0 0px var(--heart-red)); opacity: 0; }
         }
 
-        .beating { animation: heartbeat 0.8s ease-in-out 3; }
-        .target-locked { filter: drop-shadow(0 0 10px var(--gold)) brightness(1.2); }
+        .beating {
+            animation: heartbeat 0.8s ease-in-out 3;
+        }
 
+        .target-locked {
+            filter: drop-shadow(0 0 8px var(--gold)) brightness(1.1);
+        }
+
+        /* Reset Icon - Ensure it stays on top */
         #reset-icon {
-            position: fixed; bottom: 40px; right: 40px;
-            width: 50px; height: 50px; z-index: 200;
+            position: fixed; 
+            bottom: 30px; 
+            right: 30px;
+            width: 50px; 
+            height: 50px; 
+            z-index: 200; 
+            cursor: pointer;
         }
     </style>
 </head>
 <body class="bg-input">
-
-    <div id="mucha-frame"></div>
 
     <div id="input-screen">
         <p style="font-style: italic; color: var(--gold); margin-bottom: 20px;">❦ Seek the destination of your heart ❦</p>
@@ -160,7 +153,6 @@
         const needle = document.getElementById('cupid-needle');
         const ornament = document.getElementById('ornament-layer');
         const viewport = document.getElementById('compass-viewport');
-        const frame = document.getElementById('mucha-frame');
         const inputScreen = document.getElementById('input-screen');
         const resetIcon = document.getElementById('reset-icon');
 
@@ -173,7 +165,10 @@
                 document.getElementById('lat').value = savedLat;
                 document.getElementById('lng').value = savedLng;
             }
+            // Logic to ensure clean start
             inputScreen.style.display = 'flex';
+            viewport.style.display = 'none';
+            resetIcon.style.display = 'none';
         };
 
         function startGPS() {
@@ -202,10 +197,10 @@
             localStorage.setItem('mucha_lat', targetLat);
             localStorage.setItem('mucha_lng', targetLng);
 
+            // Toggle Screens
             inputScreen.style.display = 'none';
-            viewport.style.setProperty('display', 'flex', 'important');
-            frame.style.setProperty('display', 'block', 'important');
-            resetIcon.style.display = 'block';
+            viewport.style.display = 'flex';
+            resetIcon.style.display = 'block'; // Make button appear
             document.body.className = 'bg-compass';
             
             startGPS();
@@ -214,9 +209,8 @@
 
         function showInput() {
             inputScreen.style.display = 'flex';
-            viewport.style.setProperty('display', 'none', 'important');
-            frame.style.setProperty('display', 'none', 'important');
-            resetIcon.style.display = 'none';
+            viewport.style.display = 'none';
+            resetIcon.style.display = 'none'; // Hide button on input page
             document.body.className = 'bg-input';
         }
 
