@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cupid Compass</title>
+    <title>Mucha Cupid Compass</title>
     <style>
         :root {
             --gold: #d4af37;
             --heart-red: #ff3b3b;
+            /* Cohesive Font: Elegant Serif */
+            --main-font: 'Georgia', 'Times New Roman', serif;
         }
 
         html, body {
@@ -17,13 +19,14 @@
             overflow: hidden;
             display: flex;
             justify-content: center;
-            align-items: center; 
+            align-items: center;
+            font-family: var(--main-font);
         }
 
         .bg-input { background-image: url('input-bg.png'); background-size: cover; background-position: center; }
         .bg-compass { background-image: url('compass-bg.png'); background-size: cover; background-position: center; }
 
-        /* Initial State: Compass and Reset Icon are hidden via CSS */
+        /* Initial State */
         #compass-viewport, #reset-icon { 
             display: none; 
         }
@@ -33,27 +36,76 @@
             display: flex; 
             flex-direction: column;
             z-index: 100;
-            padding: 30px;
+            padding: 35px;
             border: 1px solid var(--gold);
             background: rgba(0, 0, 0, 0.9);
-            width: 80%; max-width: 320px;
+            width: 85%; max-width: 360px;
             border-radius: 50px 50px 10px 10px;
             text-align: center;
-            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+            box-shadow: 0 0 25px rgba(212, 175, 55, 0.25);
+        }
+
+        /* Typography Fixes */
+        #input-screen p {
+            font-size: 1.1rem; /* Bigger subtitle */
+            font-style: italic;
+            color: var(--gold);
+            margin-bottom: 25px;
+            line-height: 1.4;
         }
 
         .input-group {
-            display: flex; align-items: center; margin-bottom: 12px;
-            border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+            display: flex; align-items: center; margin-bottom: 18px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.4);
         }
-        label { width: 80px; text-align: left; font-size: 0.7rem; color: var(--gold); text-transform: uppercase; }
-        input { flex: 1; padding: 10px; border: none; background: transparent; color: #fff; outline: none; }
+
+        label { 
+            width: 90px; 
+            text-align: left; 
+            font-size: 0.9rem; /* Bigger labels */
+            color: var(--gold); 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        input { 
+            flex: 1; 
+            padding: 12px 5px; 
+            border: none; 
+            background: transparent; 
+            color: #fff; 
+            outline: none; 
+            font-family: var(--main-font);
+            font-size: 1rem; /* Bigger input text */
+        }
+
+        .divider {
+            font-size: 0.8rem; 
+            color: var(--gold); 
+            margin: 10px 0;
+            letter-spacing: 2px;
+        }
 
         #confirm-btn {
-            margin-top: 15px; padding: 12px;
-            background: transparent; color: var(--gold);
-            border: 1px solid var(--gold); border-radius: 25px;
-            text-transform: uppercase; font-weight: bold; cursor: pointer;
+            margin-top: 20px; 
+            padding: 15px;
+            background: transparent; 
+            color: var(--gold);
+            border: 1px solid var(--gold); 
+            border-radius: 30px;
+            text-transform: uppercase; 
+            font-weight: bold; 
+            cursor: pointer;
+            font-family: var(--main-font);
+            font-size: 1rem; /* Bigger button text */
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        #confirm-btn:active {
+            background: var(--gold);
+            color: #000;
         }
 
         /* Compass Viewport */
@@ -89,7 +141,7 @@
             z-index: 10;
             opacity: 0;
             pointer-events: none;
-            transform-origin: 50% 9.1543%; /* Heart anchor */
+            transform-origin: 50% 9.1543%;
         }
 
         /* Heartbeat Animation */
@@ -101,15 +153,9 @@
             100% { transform: translate(-50%, -50%) scale(1); filter: brightness(1) drop-shadow(0 0 0px var(--heart-red)); opacity: 0; }
         }
 
-        .beating {
-            animation: heartbeat 0.8s ease-in-out 3;
-        }
+        .beating { animation: heartbeat 0.8s ease-in-out 3; }
+        .target-locked { filter: drop-shadow(0 0 8px var(--gold)) brightness(1.1); }
 
-        .target-locked {
-            filter: drop-shadow(0 0 8px var(--gold)) brightness(1.1);
-        }
-
-        /* Reset Icon - Ensure it stays on top */
         #reset-icon {
             position: fixed; 
             bottom: 30px; 
@@ -124,17 +170,17 @@
 <body class="bg-input">
 
     <div id="input-screen">
-        <p style="font-style: italic; color: var(--gold); margin-bottom: 20px;">❦ Guide by Your Heart ❦</p>
+        <p>❦ Guide by Your Heart ❦</p>
         <div class="input-group">
             <label>City</label>
-            <input type="text" id="city-input" placeholder="Enter city name...">
+            <input type="text" id="city-input" placeholder="Search...">
         </div>
-        <div style="font-size: 0.8rem; color: var(--gold); margin: 5px;">— OR —</div>
+        <div class="divider">— OR —</div>
         <div class="input-group">
-            <label>Lat</label><input type="number" id="lat" step="any">
+            <label>Lat</label><input type="number" id="lat" step="any" placeholder="0.000">
         </div>
         <div class="input-group">
-            <label>Lng</label><input type="number" id="lng" step="any">
+            <label>Lng</label><input type="number" id="lng" step="any" placeholder="0.000">
         </div>
         <button id="confirm-btn" onclick="handleStart()">Begin</button>
     </div>
@@ -165,7 +211,6 @@
                 document.getElementById('lat').value = savedLat;
                 document.getElementById('lng').value = savedLng;
             }
-            // Logic to ensure clean start
             inputScreen.style.display = 'flex';
             viewport.style.display = 'none';
             resetIcon.style.display = 'none';
@@ -197,10 +242,9 @@
             localStorage.setItem('mucha_lat', targetLat);
             localStorage.setItem('mucha_lng', targetLng);
 
-            // Toggle Screens
             inputScreen.style.display = 'none';
             viewport.style.display = 'flex';
-            resetIcon.style.display = 'block'; // Make button appear
+            resetIcon.style.display = 'block';
             document.body.className = 'bg-compass';
             
             startGPS();
@@ -210,7 +254,7 @@
         function showInput() {
             inputScreen.style.display = 'flex';
             viewport.style.display = 'none';
-            resetIcon.style.display = 'none'; // Hide button on input page
+            resetIcon.style.display = 'none';
             document.body.className = 'bg-input';
         }
 
@@ -242,7 +286,7 @@
             needle.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
 
             const checkAngle = Math.abs(currentRotation % 360);
-            if (checkAngle <5 || checkAngle > 355) {
+            if (checkAngle < 5 || checkAngle > 355) {
                 if (!lockState) {
                     ornament.classList.add('beating');
                     needle.classList.add('target-locked');
