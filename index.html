@@ -8,6 +8,7 @@
         :root {
             --gold: #d4af37;
             --cream: #f3e9d2;
+            --heart-red: #ff3b3b;
         }
 
         /* Base Layout */
@@ -24,7 +25,7 @@
         .bg-input { background-image: url('input-bg.png'); background-size: cover; background-position: center; }
         .bg-compass { background-image: url('compass-bg.png'); background-size: cover; background-position: center; }
 
-        /* Prevent flicker: Hidden by default */
+        /* Initial Setup */
         #input-screen, #compass-viewport, #reset-icon { display: none; }
 
         /* Aesthetic Input Screen */
@@ -52,11 +53,9 @@
             background: transparent; color: var(--gold);
             border: 1px solid var(--gold); border-radius: 25px;
             text-transform: uppercase; font-weight: bold; cursor: pointer;
-            transition: 0.3s;
         }
-        #confirm-btn:active { background: var(--gold); color: #000; }
 
-        /* Compass Container (Vertically Centered) */
+        /* Compass Viewport */
         #compass-viewport {
             position: absolute;
             top: 0; left: 0;
@@ -79,7 +78,7 @@
             object-fit: contain;
         }
 
-        /* FIX: Ornament now at the very top */
+        /* Layer Depth */
         #cupid-needle {
             z-index: 5;
             will-change: transform;
@@ -87,40 +86,41 @@
         }
 
         #ornament-layer {
-            z-index: 10; /* Higher than Cupid */
-            opacity: 0.4;
-            transition: opacity 0.4s;
-            pointer-events: none; /* User can click through it to the reset icon if needed */
+            z-index: 10; /* Top Layer */
+            opacity: 0;
+            pointer-events: none;
         }
 
-        /* Visual Effects */
+        /* THE RED HEARTBEAT EFFECT */
+        @keyframes heartbeat {
+            0% { transform: translate(-50%, -50%) scale(1); filter: brightness(1) drop-shadow(0 0 0px var(--heart-red)); opacity: 0.2; }
+            30% { transform: translate(-50%, -50%) scale(1.08); filter: brightness(1.6) drop-shadow(0 0 15px var(--heart-red)); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.02); filter: brightness(1.2) drop-shadow(0 0 5px var(--heart-red)); opacity: 0.8; }
+            70% { transform: translate(-50%, -50%) scale(1.12); filter: brightness(1.8) drop-shadow(0 0 25px var(--heart-red)); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); filter: brightness(1) drop-shadow(0 0 0px var(--heart-red)); opacity: 0.2; }
+        }
+
+        .beating {
+            animation: heartbeat 0.8s ease-in-out 3; /* Beats 3 times */
+        }
+
         .target-locked {
-            filter: drop-shadow(0 0 12px var(--gold)) brightness(1.15);
-        }
-
-        @keyframes twinkle-gold {
-            0%, 100% { filter: brightness(1); opacity: 0.4; }
-            50% { filter: brightness(1.8) drop-shadow(0 0 15px var(--gold)); opacity: 1; }
-        }
-
-        .twinkle-active {
-            animation: twinkle-gold 0.6s ease-in-out 3;
+            filter: drop-shadow(0 0 8px var(--gold)) brightness(1.1);
         }
 
         #reset-icon {
             position: fixed; bottom: 30px; right: 30px;
             width: 50px; height: 50px; z-index: 200;
-            filter: drop-shadow(0 0 5px #000);
         }
     </style>
 </head>
 <body class="bg-input">
 
     <div id="input-screen">
-        <p style="font-style: italic; color: var(--gold); margin-bottom: 20px;">❦ Seek your destination ❦</p>
+        <p style="font-style: italic; color: var(--gold); margin-bottom: 20px;">❦ Seek the destination of your heart ❦</p>
         <div class="input-group">
             <label>City</label>
-            <input type="text" id="city-input" placeholder="Search City Name...">
+            <input type="text" id="city-input" placeholder="Enter city name...">
         </div>
         <div style="font-size: 0.6rem; color: var(--gold); margin: 5px;">— OR —</div>
         <div class="input-group">
@@ -158,8 +158,10 @@
         window.onload = () => {
             const savedLat = localStorage.getItem('mucha_lat');
             const savedLng = localStorage.getItem('mucha_lng');
-            if (savedLat) document.getElementById('lat').value = savedLat;
-            if (savedLng) document.getElementById('lng').value = savedLng;
+            if (savedLat) {
+                document.getElementById('lat').value = savedLat;
+                document.getElementById('lng').value = savedLng;
+            }
             inputScreen.style.display = 'flex';
         };
 
@@ -186,7 +188,7 @@
                 targetLng = parseFloat(document.getElementById('lng').value);
             }
 
-            if (isNaN(targetLat)) return alert("Please enter coordinates or city.");
+            if (isNaN(targetLat)) return alert("Please specify a location.");
 
             localStorage.setItem('mucha_lat', targetLat);
             localStorage.setItem('mucha_lng', targetLng);
@@ -219,6 +221,7 @@
         function updateRotation(event) {
             let rawHeading = event.webkitCompassHeading || (360 - event.alpha);
             
+            // Anti-jiggle smoothing
             let filterAlpha = 0.15;
             let hDiff = rawHeading - smoothedHeading;
             if (hDiff > 180) hDiff -= 360;
@@ -230,6 +233,7 @@
             const bearing = getBearing(userLat, userLon, targetLat, targetLng);
             let targetRotation = bearing - smoothedHeading;
 
+            // Infinite rotation
             let rotDiff = targetRotation - (currentRotation % 360);
             if (rotDiff > 180) rotDiff -= 360;
             if (rotDiff < -180) rotDiff += 360;
@@ -237,17 +241,20 @@
 
             needle.style.transform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
 
+            // Feedback Logic
             const checkAngle = Math.abs(currentRotation % 360);
             if (checkAngle < 6 || checkAngle > 354) {
                 if (!lockState) {
-                    ornament.classList.add('twinkle-active');
+                    // Start Heartbeat & Vibration
+                    ornament.classList.add('beating');
                     needle.classList.add('target-locked');
-                    if ("vibrate" in navigator) navigator.vibrate([80, 40, 80]);
+                    if ("vibrate" in navigator) navigator.vibrate([100, 50, 100]);
                     lockState = true;
                 }
             } else {
                 if (lockState) {
-                    ornament.classList.remove('twinkle-active');
+                    // Stop Effects
+                    ornament.classList.remove('beating');
                     needle.classList.remove('target-locked');
                     lockState = false;
                 }
